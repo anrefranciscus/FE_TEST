@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Paper,
   Title,
@@ -16,14 +16,29 @@ import {
   Flex,
   useMantineTheme,
   rem,
+  Alert,
+  Loader,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { IconLock, IconUser } from '@tabler/icons-react';
+import { IconLock, IconUser, IconAlertCircle } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function LoginPage() {
-  const { login, isLoading } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login, isLoading, isAuthenticated, user } = useAuth();
+  const [formError, setFormError] = useState<string>('');
   const theme = useMantineTheme();
+  
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+
+  // Redirect jika sudah login
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      router.replace(callbackUrl);
+    }
+  }, [isAuthenticated, user, router, callbackUrl]);
 
   const form = useForm({
     initialValues: {
@@ -37,13 +52,74 @@ export default function LoginPage() {
   });
 
   const handleSubmit = async (values: typeof form.values) => {
-    setIsSubmitting(true);
+    setFormError('');
+    
     try {
       await login(values.username, values.password);
-    } finally {
-      setIsSubmitting(false);
+      
+      // Show success notification
+      notifications.show({
+        title: 'Login Berhasil',
+        message: 'Selamat datang di sistem monitoring terpadu',
+        color: 'green',
+        autoClose: 3000,
+      });
+      
+      // Redirect will be handled by useEffect above
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      // Set error message based on error type
+      let errorMessage = 'Login gagal. Silakan coba lagi.';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Username atau password salah.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Endpoint tidak ditemukan.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setFormError(errorMessage);
+      
+      // Show error notification
+      notifications.show({
+        title: 'Login Gagal',
+        message: errorMessage,
+        color: 'red',
+        icon: <IconAlertCircle size="1rem" />,
+      });
     }
   };
+
+  // Show loading spinner while checking auth status
+  if (isLoading) {
+    return (
+      <Container fluid p={0} style={{ minHeight: '100vh' }}>
+        <Flex h="100vh" align="center" justify="center">
+          <Loader size="xl" color={theme.colors.blue[6]} />
+        </Flex>
+      </Container>
+    );
+  }
+
+  // Don't render login form if already authenticated
+  if (isAuthenticated) {
+    return (
+      <Container fluid p={0} style={{ minHeight: '100vh' }}>
+        <Flex h="100vh" align="center" justify="center">
+          <Box ta="center">
+            <Loader size="xl" color={theme.colors.blue[6]} mb="md" />
+            <Text size="lg" fw={500}>
+              Mengarahkan ke dashboard...
+            </Text>
+          </Box>
+        </Flex>
+      </Container>
+    );
+  }
 
   return (
     <Container fluid p={0} style={{ minHeight: '100vh' }}>
@@ -87,6 +163,22 @@ export default function LoginPage() {
                 borderColor: theme.colors.gray[2],
               }}
             >
+              {formError && (
+                <Alert
+                  color="red"
+                  title="Error"
+                  icon={<IconAlertCircle size="1rem" />}
+                  mb="md"
+                  styles={{
+                    root: {
+                      borderColor: theme.colors.red[6],
+                    },
+                  }}
+                >
+                  {formError}
+                </Alert>
+              )}
+
               <form onSubmit={form.onSubmit(handleSubmit)}>
                 <TextInput
                   label="Username"
@@ -96,11 +188,12 @@ export default function LoginPage() {
                   {...form.getInputProps('username')}
                   mb="md"
                   size="md"
+                  error={form.errors.username}
                   styles={{
                     input: {
-                      borderColor: theme.colors.gray[3],
+                      borderColor: form.errors.username ? theme.colors.red[6] : theme.colors.gray[3],
                       '&:focus': {
-                        borderColor: theme.colors.blue[6],
+                        borderColor: form.errors.username ? theme.colors.red[6] : theme.colors.blue[6],
                       },
                     },
                   }}
@@ -114,11 +207,12 @@ export default function LoginPage() {
                   {...form.getInputProps('password')}
                   mb="xl"
                   size="md"
+                  error={form.errors.password}
                   styles={{
                     input: {
-                      borderColor: theme.colors.gray[3],
+                      borderColor: form.errors.password ? theme.colors.red[6] : theme.colors.gray[3],
                       '&:focus': {
-                        borderColor: theme.colors.blue[6],
+                        borderColor: form.errors.password ? theme.colors.red[6] : theme.colors.blue[6],
                       },
                     },
                   }}
@@ -128,7 +222,8 @@ export default function LoginPage() {
                   type="submit"
                   fullWidth
                   size="md"
-                  loading={isLoading || isSubmitting}
+                  loading={isLoading}
+                  disabled={isLoading}
                   style={{
                     background: `linear-gradient(135deg, ${theme.colors.blue[6]}, ${theme.colors.cyan[6]})`,
                     transition: 'all 0.2s ease',
@@ -136,9 +231,14 @@ export default function LoginPage() {
                       transform: 'translateY(-1px)',
                       boxShadow: theme.shadows.md,
                     },
+                    '&:disabled': {
+                      background: theme.colors.gray[3],
+                      transform: 'none',
+                      boxShadow: 'none',
+                    },
                   }}
                 >
-                  {isLoading || isSubmitting ? 'Memproses...' : 'Masuk'}
+                  {isLoading ? 'Memproses...' : 'Masuk'}
                 </Button>
               </form>
 

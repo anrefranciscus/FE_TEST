@@ -3,8 +3,9 @@
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
-import { AuthProvider } from '@/lib/hooks/useAuth';
+
 import { ReactNode } from 'react';
+import { AuthProvider } from '@/lib/hooks/useAuth';
 
 export default function LayoutProvider({ children }: { children: ReactNode }) {
   return (

@@ -27,10 +27,11 @@ import { BranchChart } from '@/components/dashboard/BranchChart';
 import { gerbangAPI } from '@/lib/api/gerbang';
 import { notifications } from '@mantine/notifications';
 import { Gateway, GerbangApiResponse } from '@/lib/types/gerbang';
+import Layout from '@/components/Layout';
 
 
 export default function DashboardPage() {
-    const defaultDate = new Date(2023, 10, 1)
+    const defaultDate = new Date(2023, 10, 2)
     const [date, setDate] = useState<DateValue>(defaultDate);
     const [gateway, setGateway] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -53,7 +54,6 @@ export default function DashboardPage() {
     const fetchGateways = async () => {
         try {
             const response = await gerbangAPI.getAll({ id: 3 }) as GerbangApiResponse;
-            console.log(response.data)
             if (response.status) {
                 const rows = response.data?.rows?.rows;
                 const uniqueRows = rows.filter(
@@ -138,7 +138,8 @@ export default function DashboardPage() {
         : dataLalin;
 
     return (
-        <div style={{ position: 'relative' }}>
+       <Layout>
+         <div style={{ position: 'relative' }}>
             <LoadingOverlay visible={loading} />
 
             <Group justify="space-between" mb="lg">
@@ -222,5 +223,6 @@ export default function DashboardPage() {
             </Text>
 
         </div>
+       </Layout>
     );
 }
