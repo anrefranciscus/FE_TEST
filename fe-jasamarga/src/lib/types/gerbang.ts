@@ -23,11 +23,10 @@ export interface GerbangResponse {
 }
 
 export interface GerbangFormData {
-  kode: string;
-  nama: string;
-  lokasi: string;
-  ruas: string;
-  status: 'active' | 'inactive';
+  id: number;
+  IdCabang: number;
+  NamaGerbang: string;
+  NamaCabang: string;
 }
 export interface Gateway {
   id: number;

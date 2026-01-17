@@ -17,15 +17,13 @@ export const gerbangAPI = {
     return response;
   },
 
-  async update(id: number, data: GerbangFormData): Promise<any> {
-    const response = await api.put(`/gerbang/${id}`, data);
+  async update(data: GerbangFormData): Promise<any> {
+    const response = await api.put(`/gerbangs`, data);
     return response;
   },
 
-   async delete(data: { id: number; IdCabang: number }): Promise<any> {
-    const response = await api.delete('/gerbangs', {
-      data,
-    });
+   async delete(payload: { id: number; IdCabang: number }): Promise<any> {
+    const response = await api.delete('/gerbangs', {data: payload});
     return response.data;
   },
 };

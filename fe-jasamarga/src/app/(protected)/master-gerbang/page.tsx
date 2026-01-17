@@ -20,16 +20,10 @@ import { notifications } from '@mantine/notifications';
 import { GerbangApiResponse } from '@/lib/types/gerbang';
 import Layout from '@/components/Layout';
 
-interface Gerbang {
-  id: number;
-  id_cabang: number;
-  kode: string;
-  nama: string;
-}
 
 
 export default function MasterGerbangPage() {
-  const [data, setData] = useState<Gerbang[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState({
@@ -136,13 +130,18 @@ export default function MasterGerbangPage() {
               setSelectedGerbang(g);
               open();
             }}
-            onDelete={async (gerbang:any) => {
+            onDelete={async (g:any) => {
+              console.log("Test")
+              console.log('DELETE PAYLOAD', {
+    id: g.id,
+    idCabang: g.idCabang,
+  });
               if (!confirm('Apakah Anda yakin ingin menghapus data gerbang ini?')) return;
 
               try {
                 const response = await gerbangAPI.delete({
-                  id: gerbang.id,
-                  IdCabang: gerbang.IdCabang
+                  id: g.id,
+                  IdCabang: g.IdCabang
                 });
 
                 if (response.status) {

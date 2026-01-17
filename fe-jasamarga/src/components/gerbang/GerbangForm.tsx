@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   TextInput,
   Select,
@@ -28,25 +28,38 @@ export function GerbangForm({
 
   const form = useForm({
     initialValues: {
-      kode: gerbang?.kode ?? '',
-      nama: gerbang?.nama ?? '',
-      lokasi: gerbang?.lokasi ?? '',
-      ruas: gerbang?.ruas ?? '',
-      status: gerbang?.status ?? 'active',
+      id: gerbang?.id ?? '',
+      IdCabang: gerbang?.IdCabang ?? '',
+      NamaGerbang: gerbang?.NamaGerbang ?? '',
+      NamaCabang: gerbang?.NamaCabang ?? ''
     },
     validate: {
-      kode: (v) => (!v.trim() ? 'Kode gerbang diperlukan' : null),
-      nama: (v) => (!v.trim() ? 'Nama gerbang diperlukan' : null),
-      lokasi: (v) => (!v.trim() ? 'Lokasi diperlukan' : null),
-      ruas: (v) => (!v.trim() ? 'Ruas diperlukan' : null),
+      id: (v) => (!String(v).trim() ? 'Id diperlukan' : null),
+      IdCabang: (v) => (!v.trim() ? 'Id Cabang gerbang diperlukan' : null),
+      NamaGerbang: (v) => (!v.trim() ? 'Nama Gerbang diperlukan' : null),
+      NamaCabang: (v) => (!v.trim() ? 'Nama Cabang diperlukan' : null),
     },
   });
+
+    useEffect(() => {
+    if (gerbang) {
+      console.log(gerbang)
+      form.setValues({
+        id: String(gerbang.id),
+        IdCabang: String(gerbang.IdCabang),
+        NamaGerbang: gerbang.NamaGerbang ?? '',
+        NamaCabang: gerbang.NamaCabang ?? '',
+      });
+    } else {
+      form.reset();
+    }
+  }, [gerbang]);
 
   const handleSubmit = async (values: typeof form.values) => {
     setLoading(true);
     try {
       if (gerbang) {
-        await gerbangAPI.update(gerbang.id, values);
+        await gerbangAPI.update(values);
         notifications.show({
           title: 'Berhasil',
           message: 'Data gerbang berhasil diperbarui',
@@ -78,47 +91,35 @@ export function GerbangForm({
 
       <form onSubmit={form.onSubmit(handleSubmit)}>
         <TextInput
-          label="Kode Gerbang"
-          placeholder="Contoh: G001"
+          label="Id"
+          placeholder="Contoh: 12"
           required
           mb="md"
-          {...form.getInputProps('kode')}
+          {...form.getInputProps('id')}
+        />
+
+        <TextInput
+          label="Id Cabang"
+          placeholder="Contoh: 16"
+          required
+          mb="md"
+          {...form.getInputProps('IdCabang')}
         />
 
         <TextInput
           label="Nama Gerbang"
-          placeholder="Contoh: Gerbang Tol Bekasi Barat"
+          placeholder="Contoh: Garut2"
           required
           mb="md"
-          {...form.getInputProps('nama')}
+          {...form.getInputProps('NamaGerbang')}
         />
 
         <TextInput
-          label="Lokasi"
-          placeholder="Contoh: Km 12 Tol Jakarta-Cikampek"
+          label="Nama (Cabang)"
+          placeholder="Contoh: Gedebage Cibarusa"
           required
           mb="md"
-          {...form.getInputProps('lokasi')}
-        />
-
-        <TextInput
-          label="Ruas (Cabang)"
-          placeholder="Contoh: Ruas Jakarta-Cikampek"
-          required
-          mb="md"
-          {...form.getInputProps('ruas')}
-        />
-
-        <Select
-          label="Status"
-          placeholder="Pilih status"
-          data={[
-            { value: 'active', label: 'Aktif' },
-            { value: 'inactive', label: 'Non-Aktif' },
-          ]}
-          required
-          mb="xl"
-          {...form.getInputProps('status')}
+          {...form.getInputProps('NamaCabang')}
         />
 
         <Group justify="flex-end" mt="md">
