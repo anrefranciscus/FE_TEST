@@ -8,12 +8,12 @@ export const gerbangAPI = {
   },
 
   async getById(id: number): Promise<{ data: any }> {
-    const response = await api.get(`/gerbang/${id}`);
+    const response = await api.get(`/gerbangs/${id}`);
     return response;
   },
 
   async create(data: GerbangFormData): Promise<any> {
-    const response = await api.post('/gerbang', data);
+    const response = await api.post('/gerbangs', data);
     return response;
   },
 
@@ -22,8 +22,10 @@ export const gerbangAPI = {
     return response;
   },
 
-  async delete(id: number): Promise<any> {
-    const response = await api.delete(`/gerbang/${id}`);
-    return response;
+   async delete(data: { id: number; IdCabang: number }): Promise<any> {
+    const response = await api.delete('/gerbangs', {
+      data,
+    });
+    return response.data;
   },
 };

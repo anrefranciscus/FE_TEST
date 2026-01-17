@@ -33,7 +33,6 @@ export default function LoginPage() {
   
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
-  // Redirect jika sudah login
   useEffect(() => {
     if (isAuthenticated && user) {
       router.replace(callbackUrl);
@@ -65,11 +64,9 @@ export default function LoginPage() {
         autoClose: 3000,
       });
       
-      // Redirect will be handled by useEffect above
     } catch (error: any) {
       console.error('Login error:', error);
       
-      // Set error message based on error type
       let errorMessage = 'Login gagal. Silakan coba lagi.';
       
       if (error.response?.status === 401) {
@@ -84,7 +81,6 @@ export default function LoginPage() {
       
       setFormError(errorMessage);
       
-      // Show error notification
       notifications.show({
         title: 'Login Gagal',
         message: errorMessage,

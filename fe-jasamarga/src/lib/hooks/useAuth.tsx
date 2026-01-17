@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
 import { authAPI } from '@/lib/api/auth';
-import { LoginRequest, LoginResponse, User } from '@/lib/types/auth';
+import {  User } from '@/lib/types/auth';
 
 interface AuthContextType {
   user: User | null;

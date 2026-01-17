@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   AppShell,
@@ -23,22 +23,34 @@ import {
   IconUser,
   IconChevronDown,
 } from '@tabler/icons-react'
+import { authAPI } from '@/lib/api/auth'
 
 const menuItems = [
   { label: 'Dashboard', icon: IconDashboard, href: '/dashboard' },
-  { label: 'Laporan Lalu Lintas', icon: IconReport, href: '/laporan-lalu-lintas' },
+  { label: 'Laporan Lalu Lintas', icon: IconReport, href: '/traffictlight' },
   { label: 'Master Data Gerbang', icon: IconBuildingBridge , href: '/master-gerbang' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const [username, setUsername] = useState('')
   const [active, setActive] = useState('Dashboard')
   const [opened, { toggle }] = useDisclosure()
   const router = useRouter()
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    router.push('/login')
+  useEffect(() => {
+    const userStr = localStorage.getItem('jasamarga_user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        setUsername(user.username ?? '')
+      } catch {
+        setUsername('')
+      }
+    }
+  }, [])
+
+  const handleLogout = async () => {
+    await authAPI.logout()
   }
 
   return (
@@ -99,7 +111,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 leftSection={<IconUser size={16} />}
                 rightSection={<IconChevronDown size={16} />}
               >
-                Super Admin
+                {username || 'User'}
               </Button>
             </Menu.Target>
             <Menu.Dropdown>

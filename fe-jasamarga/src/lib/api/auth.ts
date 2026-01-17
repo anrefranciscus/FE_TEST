@@ -1,10 +1,8 @@
-// src/lib/api/auth.ts
 import axios from 'axios';
 import { LoginRequest, LoginResponse } from '@/lib/types/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
-// Helper untuk mengelola cookies di client-side
 const cookieManager = {
   setToken: (token: string) => {
     if (typeof window === 'undefined') return;
@@ -39,45 +37,37 @@ const cookieManager = {
   }
 };
 
-// Fungsi untuk sinkronkan storage
 const syncStorage = () => {
   if (typeof window === 'undefined') return;
   
   const token = localStorage.getItem('jasamarga_token');
   const cookieToken = cookieManager.getToken();
   
-  // Jika ada token di localStorage tapi tidak di cookies, sync
   if (token && !cookieToken) {
     cookieManager.setToken(token);
   }
   
-  // Jika ada token di cookies tapi tidak di localStorage, sync
   if (cookieToken && !token) {
     localStorage.setItem('jasamarga_token', cookieToken);
   }
   
-  // Jika tidak ada token di kedua tempat, redirect ke login
   if (!token && !cookieToken && window.location.pathname !== '/login') {
     redirectToLogin();
   }
 };
 
-// Helper untuk redirect ke login
 const redirectToLogin = () => {
   if (typeof window === 'undefined') return;
   
-  // Hapus semua storage
   localStorage.removeItem('jasamarga_token');
   localStorage.removeItem('jasamarga_user');
   cookieManager.clearAll();
   
-  // Redirect ke login jika belum di halaman login
   if (window.location.pathname !== '/login') {
     window.location.href = '/login';
   }
 };
 
-// Panggil sync saat modul dimuat (untuk handle refresh)
 if (typeof window !== 'undefined') {
   syncStorage();
 }
@@ -89,18 +79,14 @@ const api = axios.create({
   },
 });
 
-// Interceptor request
 api.interceptors.request.use(
   (config) => {
-    // Skip untuk endpoint login
     if (config.url?.includes('/auth/login')) {
       return config;
     }
     
-    // Sinkronkan storage sebelum request
     syncStorage();
     
-    // Ambil token dari localStorage (atau cookies sebagai fallback)
     const token = localStorage.getItem('jasamarga_token') || cookieManager.getToken();
     
     if (!token) {
@@ -108,7 +94,6 @@ api.interceptors.request.use(
       return Promise.reject(new Error('No authentication token'));
     }
     
-    // Set header
     config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
@@ -117,7 +102,6 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor response
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -134,7 +118,6 @@ export const authAPI = {
       const response = await api.post('/auth/login', credentials);
       
       if (response.data.token && typeof window !== 'undefined') {
-        // Simpan ke localStorage
         localStorage.setItem('jasamarga_token', response.data.token);
         
         if (response.data.user) {
@@ -143,7 +126,6 @@ export const authAPI = {
           cookieManager.setUser(response.data.user);
         }
         
-        // Simpan token ke cookies untuk middleware
         cookieManager.setToken(response.data.token);
       }
       
@@ -191,7 +173,6 @@ export const authAPI = {
     }
   },
   
-  // Fungsi untuk sync manual
   syncStorage: () => {
     if (typeof window !== 'undefined') {
       syncStorage();
