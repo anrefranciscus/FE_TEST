@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   AppShell,
   Text,
@@ -10,7 +10,6 @@ import {
   Avatar,
   Menu,
   Stack,
-  Box,
   Burger,
   Group,
 } from '@mantine/core'
@@ -18,7 +17,7 @@ import { useDisclosure } from '@mantine/hooks'
 import {
   IconDashboard,
   IconReport,
-  IconBuildingBridge ,
+  IconBuildingBridge,
   IconLogout,
   IconUser,
   IconChevronDown,
@@ -27,15 +26,15 @@ import { authAPI } from '@/lib/api/auth'
 
 const menuItems = [
   { label: 'Dashboard', icon: IconDashboard, href: '/dashboard' },
-  { label: 'Laporan Lalu Lintas', icon: IconReport, href: '/traffictlight' },
-  { label: 'Master Data Gerbang', icon: IconBuildingBridge , href: '/master-gerbang' },
+  { label: 'Laporan Lalu Lintas', icon: IconReport, href: '/trafficlight' },
+  { label: 'Master Data Gerbang', icon: IconBuildingBridge, href: '/master-gerbang' },
 ]
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [username, setUsername] = useState('')
-  const [active, setActive] = useState('Dashboard')
   const [opened, { toggle }] = useDisclosure()
   const router = useRouter()
+  const pathname = usePathname() 
 
   useEffect(() => {
     const userStr = localStorage.getItem('jasamarga_user')
@@ -51,6 +50,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     await authAPI.logout()
+    router.push('/login')
   }
 
   return (
@@ -67,12 +67,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
           <Group>
-            <Burger
-              opened={opened}
-              onClick={toggle}
-              hiddenFrom="sm"
-              size="sm"
-            />
+            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
             <Text size="xl" fw={700}>
               Jasa Marga - Monitoring System
             </Text>
@@ -92,11 +87,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 key={item.label}
                 label={item.label}
                 leftSection={<item.icon size={16} />}
-                active={item.label === active}
-                onClick={() => {
-                  setActive(item.label)
-                  router.push(item.href)
-                }}
+                active={pathname === item.href} // ✅ auto active
+                onClick={() => router.push(item.href)}
               />
             ))}
           </Stack>
@@ -126,10 +118,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </AppShell.Section>
       </AppShell.Navbar>
 
-      {/* Main Content */}
-      <AppShell.Main>
-        {children}
-      </AppShell.Main>
+      {/* Main */}
+      <AppShell.Main>{children}</AppShell.Main>
     </AppShell>
   )
 }

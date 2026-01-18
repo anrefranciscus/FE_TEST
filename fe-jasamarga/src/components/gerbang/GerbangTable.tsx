@@ -2,19 +2,17 @@
 
 import {
   Table,
-  Badge,
   ActionIcon,
   Group,
   Pagination,
   Box,
 } from '@mantine/core';
 import { IconEdit, IconTrash, IconEye } from '@tabler/icons-react';
-import { formatDate } from '@/lib/utils/format';
 
 interface GerbangTableProps {
   data: any[];
   onEdit: (gerbang: any) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number, IdCabang: number) => void;
   onView?: (gerbang: any) => void;
   page: number;
   totalPages: number;
@@ -33,7 +31,7 @@ export function GerbangTable({
   loading = false,
 }: GerbangTableProps) {
   const rows = data.map((gerbang) => (
-    <Table.Tr key={gerbang.id}>
+    <Table.Tr key={gerbang._uid}>
       <Table.Td>{gerbang.id}</Table.Td>
       <Table.Td>{gerbang.NamaGerbang}</Table.Td>
       <Table.Td>{gerbang.NamaCabang}</Table.Td>
@@ -61,7 +59,7 @@ export function GerbangTable({
             variant="light"
             color="red"
             size="sm"
-            onClick={() => onDelete(gerbang.id)}
+            onClick={() => onDelete(gerbang.id, gerbang.IdCabang)}
           >
             <IconTrash size={16} />
           </ActionIcon>

@@ -1,6 +1,10 @@
 import api from './index';
-import { GerbangResponse, GerbangFormData, GerbangApiResponse } from '@/lib/types/gerbang';
+import { GerbangFormData, GerbangApiResponse } from '@/lib/types/gerbang';
 
+interface DeleteGerbangPayload {
+  id: number;
+  IdCabang: number;
+}
 export const gerbangAPI = {
   async getAll(params?: any): Promise<GerbangApiResponse> {
     const response = await api.get('/gerbangs', { params });
@@ -22,8 +26,8 @@ export const gerbangAPI = {
     return response;
   },
 
-   async delete(payload: { id: number; IdCabang: number }): Promise<any> {
-    const response = await api.delete('/gerbangs', {data: payload});
+  async delete(payload: DeleteGerbangPayload): Promise<any> {
+    const response = await api.delete('/gerbangs', { data: payload });
     return response.data;
   },
 };

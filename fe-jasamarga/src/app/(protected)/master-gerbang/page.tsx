@@ -10,53 +10,71 @@ import {
   Modal,
   ActionIcon,
 } from '@mantine/core';
-import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react';
-import { gerbangAPI } from '@/lib/api/gerbang';
-import { GerbangTable } from '@/components/gerbang/GerbangTable';
-import { GerbangForm } from '@/components/gerbang/GerbangForm';
-import { SearchInput } from '@/components/common/SearchInput';
+import { IconPlus, IconRefresh } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { GerbangApiResponse } from '@/lib/types/gerbang';
+
 import Layout from '@/components/Layout';
+import { SearchInput } from '@/components/common/SearchInput';
+import { GerbangTable } from '@/components/gerbang/GerbangTable';
+import { GerbangForm } from '@/components/gerbang/GerbangForm';
 
-
+import { gerbangAPI } from '@/lib/api/gerbang';
+import { GerbangApiResponse, Gerbang } from '@/lib/types/gerbang';
 
 export default function MasterGerbangPage() {
-  const [data, setData] = useState<any[]>([]);
+  /* ================= STATE ================= */
+  const [data, setData] = useState<Gerbang[]>([]);
   const [loading, setLoading] = useState(false);
+
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
   const [pagination, setPagination] = useState({
     page: 1,
+    limit: 10,
     totalPages: 1,
     totalItems: 0,
-    limit: 10,
   });
-  const [selectedGerbang, setSelectedGerbang] = useState<any>(null);
+
+  const [selectedGerbang, setSelectedGerbang] =
+    useState<Gerbang | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
 
+  /* ================= DEBOUNCE SEARCH ================= */
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPagination((prev) => ({ ...prev, page: 1 }));
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  /* ================= FETCH DATA ================= */
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {
+      const response = (await gerbangAPI.getAll({
         page: pagination.page,
         limit: pagination.limit,
-        ...(search && { search }),
-      };
-
-      const response = await gerbangAPI.getAll(
-        params
-      ) as GerbangApiResponse;
+        search: debouncedSearch || undefined,
+      })) as GerbangApiResponse;
 
       if (!response.status) return;
 
-      const rows = response.data.rows.rows ?? [];
+      const rows = response.data.rows?.rows ?? [];
 
-      const uniqueRows = rows.filter(
-        (g, i, arr) => arr.findIndex(x => x.id === g.id) === i
-      );
-
-      setData(uniqueRows);
+      const normalizedRows = rows
+        .filter((item) =>
+          item.NamaGerbang.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          item.NamaCabang.toLowerCase().includes(debouncedSearch.toLowerCase())
+        )
+        .map((item) => ({
+          ...item,
+          _uid: `${item.id}-${item.IdCabang}`,
+        }));
+      setData(normalizedRows);
 
       setPagination((prev) => ({
         ...prev,
@@ -64,7 +82,6 @@ export default function MasterGerbangPage() {
         totalPages: response.data.total_pages,
         totalItems: response.data.count,
       }));
-
     } catch (error: any) {
       notifications.show({
         title: 'Error',
@@ -74,7 +91,7 @@ export default function MasterGerbangPage() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, search]);
+  }, [pagination.page, pagination.limit, debouncedSearch]);
 
   useEffect(() => {
     fetchData();
@@ -82,7 +99,6 @@ export default function MasterGerbangPage() {
 
   return (
     <Layout>
-
       <div style={{ position: 'relative' }}>
         <LoadingOverlay visible={loading} />
 
@@ -113,9 +129,9 @@ export default function MasterGerbangPage() {
 
             <ActionIcon
               size="lg"
+              variant="light"
               onClick={fetchData}
               loading={loading}
-              variant="light"
             >
               <IconRefresh size={18} />
             </ActionIcon>
@@ -126,23 +142,22 @@ export default function MasterGerbangPage() {
         <Paper withBorder radius="md">
           <GerbangTable
             data={data}
+            loading={loading}
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={(page) =>
+              setPagination((prev) => ({ ...prev, page }))
+            }
             onEdit={(g) => {
               setSelectedGerbang(g);
               open();
             }}
-            onDelete={async (g:any) => {
-              console.log("Test")
-              console.log('DELETE PAYLOAD', {
-    id: g.id,
-    idCabang: g.idCabang,
-  });
-              if (!confirm('Apakah Anda yakin ingin menghapus data gerbang ini?')) return;
+            onDelete={async (id: number, IdCabang: number) => {
+              if (!confirm('Apakah Anda yakin ingin menghapus data ini?'))
+                return;
 
               try {
-                const response = await gerbangAPI.delete({
-                  id: g.id,
-                  IdCabang: g.IdCabang
-                });
+                const response = await gerbangAPI.delete({ id: id, IdCabang: IdCabang });
 
                 if (response.status) {
                   notifications.show({
@@ -155,17 +170,12 @@ export default function MasterGerbangPage() {
               } catch (error: any) {
                 notifications.show({
                   title: 'Error',
-                  message: error.message || 'Gagal menghapus data gerbang',
+                  message:
+                    error.message || 'Gagal menghapus data gerbang',
                   color: 'red',
                 });
               }
             }}
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={(page) =>
-              setPagination((prev) => ({ ...prev, page }))
-            }
-            loading={loading}
           />
         </Paper>
 
@@ -173,7 +183,7 @@ export default function MasterGerbangPage() {
         <Modal
           opened={opened}
           onClose={close}
-          title={selectedGerbang ? 'Edit Gerbang' : 'Tambah Gerbang Baru'}
+          title={selectedGerbang ? 'Edit Gerbang' : 'Tambah Gerbang'}
           size="lg"
         >
           <GerbangForm
@@ -186,7 +196,6 @@ export default function MasterGerbangPage() {
           />
         </Modal>
       </div>
-
     </Layout>
   );
 }

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import {
   TextInput,
-  Select,
   Button,
   Group,
   LoadingOverlay,
@@ -43,7 +42,6 @@ export function GerbangForm({
 
     useEffect(() => {
     if (gerbang) {
-      console.log(gerbang)
       form.setValues({
         id: String(gerbang.id),
         IdCabang: String(gerbang.IdCabang),

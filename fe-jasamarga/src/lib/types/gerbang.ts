@@ -1,12 +1,9 @@
 export interface Gerbang {
-  id: number;
-  kode: string;
-  nama: string;
-  lokasi: string;
-  ruas: string;
-  status: 'active' | 'inactive';
-  created_at: string;
-  updated_at: string;
+ id: number;
+  IdCabang: number;
+  NamaGerbang: string;
+  NamaCabang: string;
+  _uid: string;
 }
 
 export interface GerbangResponse {
