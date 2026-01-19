@@ -39,9 +39,6 @@ export default function LaporanLaluLintasPage() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
 
-  const { exportToExcel } = useExport();
-
-  /* ================= FETCH ALL DATA ================= */
   const fetchData = async () => {
     if (!date) return;
 
@@ -49,7 +46,6 @@ export default function LaporanLaluLintasPage() {
     try {
       const tanggal = format(date, 'yyyy-MM-dd');
 
-      // 🔥 ambil SEMUA data (tanpa page & limit)
       const response = await lalinsApi.getAll({ tanggal });
 
       if (response.status) {
@@ -67,7 +63,6 @@ export default function LaporanLaluLintasPage() {
     }
   };
 
-  /* ================= SEARCH ================= */
  const filteredData = useMemo(() => {
     if (!search) return rawData;
 
@@ -96,25 +91,6 @@ export default function LaporanLaluLintasPage() {
   useEffect(() => {
     fetchData();
   }, [date]);
-
-  /* ================= EXPORT ================= */
-  // const handleExport = async () => {
-  //   try {
-  //     if (!date) return;
-  //     const tanggal = format(date, 'yyyy-MM-dd');
-
-  //     await exportToExcel(
-  //       { tanggal },
-  //       `laporan-lalu-lintas-${tanggal}.xlsx`
-  //     );
-  //   } catch (error: any) {
-  //     notifications.show({
-  //       title: 'Error',
-  //       message: error.message || 'Gagal export data',
-  //       color: 'red',
-  //     });
-  //   }
-  // };
 
   return (
     <Layout>
