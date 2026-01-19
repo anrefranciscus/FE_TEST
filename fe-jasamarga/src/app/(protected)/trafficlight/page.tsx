@@ -14,7 +14,6 @@ import {
 } from '@mantine/core';
 import { DatePickerInput, DateValue } from '@mantine/dates';
 import {
-  IconDownload,
   IconRefresh,
   IconCalendar,
   IconSearch,
@@ -24,28 +23,35 @@ import { format } from 'date-fns';
 import Layout from '@/components/Layout';
 import { lalinsApi } from '@/lib/api/laporan';
 import { LaporanTable } from '@/components/laporan/LaporanTable';
-import { PaymentSummary } from '@/components/laporan/PaymentSummary';
-import { useExport } from '@/lib/hooks/useExport';
 import { notifications } from '@mantine/notifications';
 import { LalinRow } from '@/lib/types/laporan';
 
 const LIMIT = 10;
 
+type TotalMode =
+  | 'TUNAI'
+  | 'ETOLL'
+  | 'FLO'
+  | 'KTP'
+  | 'ALL'
+  | 'ETOLL_TUNAI_FLO';
+
 export default function LaporanLaluLintasPage() {
-  const defaultDate = new Date(2023, 10, 2)
+  const defaultDate = new Date(2023, 10, 2);
   const [date, setDate] = useState<DateValue>(defaultDate);
   const [rawData, setRawData] = useState<LalinRow[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [totalMode, setTotalMode] = useState<TotalMode>('ALL');
 
+  /* ================= FETCH ================= */
   const fetchData = async () => {
     if (!date) return;
-
     setLoading(true);
+
     try {
       const tanggal = format(date, 'yyyy-MM-dd');
-
       const response = await lalinsApi.getAll({ tanggal });
 
       if (response.status) {
@@ -63,24 +69,24 @@ export default function LaporanLaluLintasPage() {
     }
   };
 
- const filteredData = useMemo(() => {
+  /* ================= SEARCH ================= */
+  const filteredData = useMemo(() => {
     if (!search) return rawData;
-
     const keyword = search.toLowerCase();
 
     return rawData.filter((row) => {
-      const searchableText = `
+      const text = `
         gerbang ${row.IdGerbang}
         gardu ${row.IdGardu}
         gol ${row.Golongan}
-        golongan ${row.Golongan}
         shift ${row.Shift}
       `.toLowerCase();
 
-      return searchableText.includes(keyword);
+      return text.includes(keyword);
     });
   }, [search, rawData]);
 
+  /* ================= PAGINATION ================= */
   const paginatedData = useMemo(() => {
     const start = (page - 1) * LIMIT;
     return filteredData.slice(start, start + LIMIT);
@@ -106,17 +112,8 @@ export default function LaporanLaluLintasPage() {
               value={date}
               onChange={(val) => val && setDate(val)}
               leftSection={<IconCalendar size={16} />}
-              placeholder="Pilih tanggal"
               clearable={false}
             />
-            <Button
-              leftSection={<IconDownload size={16} />}
-              variant="light"
-              disabled
-            >
-              Export Excel
-            </Button>
-
             <Button
               leftSection={<IconRefresh size={16} />}
               onClick={fetchData}
@@ -127,7 +124,7 @@ export default function LaporanLaluLintasPage() {
         </Group>
 
         {/* SEARCH */}
-        <Paper p="md" withBorder mb="lg">
+        <Paper p="md" withBorder mb="md">
           <TextInput
             placeholder="Cari Gerbang / Gardu / Golongan / Shift"
             leftSection={<IconSearch size={16} />}
@@ -139,15 +136,37 @@ export default function LaporanLaluLintasPage() {
           />
         </Paper>
 
-        <PaymentSummary data={filteredData} />
+        {/* FILTER BUTTON */}
+        <Group mb="lg">
+          <Button onClick={() => setTotalMode('TUNAI')} variant={totalMode === 'TUNAI' ? 'filled' : 'outline'}>
+            Total Tunai
+          </Button>
+          <Button onClick={() => setTotalMode('ETOLL')} variant={totalMode === 'ETOLL' ? 'filled' : 'outline'}>
+            Total E-Toll
+          </Button>
+          <Button onClick={() => setTotalMode('FLO')} variant={totalMode === 'FLO' ? 'filled' : 'outline'}>
+            Total Flo
+          </Button>
+          <Button onClick={() => setTotalMode('KTP')} variant={totalMode === 'KTP' ? 'filled' : 'outline'}>
+            Total KTP
+          </Button>
+          <Button onClick={() => setTotalMode('ETOLL_TUNAI_FLO')} variant={totalMode === 'ETOLL_TUNAI_FLO' ? 'filled' : 'outline'}>
+            E-Toll + Tunai + Flo
+          </Button>
+          <Button onClick={() => setTotalMode('ALL')} variant={totalMode === 'ALL' ? 'filled' : 'outline'}>
+            Total Keseluruhan
+          </Button>
+        </Group>
 
-        <Paper withBorder mt="lg">
+        {/* TABLE */}
+        <Paper withBorder>
           <LaporanTable
             data={paginatedData}
             page={page}
             totalPages={totalPages}
             onPageChange={setPage}
             loading={loading}
+            totalMode={totalMode}
           />
         </Paper>
 
