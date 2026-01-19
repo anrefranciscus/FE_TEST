@@ -23,7 +23,6 @@ import { gerbangAPI } from '@/lib/api/gerbang';
 import { GerbangApiResponse, Gerbang } from '@/lib/types/gerbang';
 
 export default function MasterGerbangPage() {
-  /* ================= STATE ================= */
   const [data, setData] = useState<Gerbang[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +40,6 @@ export default function MasterGerbangPage() {
     useState<Gerbang | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
 
-  /* ================= DEBOUNCE SEARCH ================= */
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -51,7 +49,6 @@ export default function MasterGerbangPage() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  /* ================= FETCH DATA ================= */
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {

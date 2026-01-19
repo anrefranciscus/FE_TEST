@@ -1,14 +1,13 @@
+'use client';
+
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 
 export interface ExportOptions {
   filename?: string;
   sheetName?: string;
   orientation?: 'portrait' | 'landscape';
   includeHeader?: boolean;
-  dateFormat?: string;
   columns?: {
     key: string;
     title: string;
@@ -28,198 +27,115 @@ export function exportToExcel(
     columns,
   } = options;
 
-  // Prepare data
-  let exportData = data;
-  
+  let rows = data;
+
   if (columns) {
-    exportData = data.map(row => {
-      const newRow: any = {};
+    rows = data.map(row => {
+      const obj: any = {};
       columns.forEach(col => {
         const value = row[col.key];
-        newRow[col.title] = col.format ? col.format(value) : value;
+        obj[col.title] = col.format ? col.format(value) : value;
       });
-      return newRow;
+      return obj;
     });
   }
 
-  // Create worksheet
-  const worksheet = XLSX.utils.json_to_sheet(exportData, {
+  const worksheet = XLSX.utils.json_to_sheet(rows, {
     header: includeHeader ? undefined : [],
   });
 
-  // Auto-size columns
-  if (columns) {
-    const colWidths = columns.map(col => ({
-      wch: col.width || Math.max(
-        col.title.length,
-        ...exportData.map(row => {
-          const value = row[col.title];
-          return value ? String(value).length : 0;
-        })
-      ),
-    }));
-    worksheet['!cols'] = colWidths;
-  }
-
-  // Create workbook
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
-  // Generate Excel file
-  const excelBuffer = XLSX.write(workbook, {
+  const buffer = XLSX.write(workbook, {
     bookType: 'xlsx',
     type: 'array',
   });
-  
-  const blob = new Blob([excelBuffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
-  
-  saveAs(blob, `${filename}.xlsx`);
+
+  saveAs(
+    new Blob([buffer], {
+      type:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    }),
+    `${filename}.xlsx`
+  );
 }
 
+/* ===================== CSV ===================== */
 export function exportToCSV(
   data: any[],
   options: ExportOptions = {}
 ): void {
-  const {
-    filename = 'export',
-    includeHeader = true,
-    columns,
-  } = options;
+  const { filename = 'export', includeHeader = true, columns } = options;
 
-  // Prepare data
-  let exportData = data;
-  
+  let rows = data;
+
   if (columns) {
-    exportData = data.map(row => {
-      const newRow: any = {};
+    rows = data.map(row => {
+      const obj: any = {};
       columns.forEach(col => {
         const value = row[col.key];
-        newRow[col.title] = col.format ? col.format(value) : value;
+        obj[col.title] = col.format ? col.format(value) : value;
       });
-      return newRow;
+      return obj;
     });
   }
 
-  // Create worksheet
-  const worksheet = XLSX.utils.json_to_sheet(exportData, {
+  const worksheet = XLSX.utils.json_to_sheet(rows, {
     header: includeHeader ? undefined : [],
   });
 
-  // Convert to CSV
   const csv = XLSX.utils.sheet_to_csv(worksheet);
-  
-  const blob = new Blob([csv], {
-    type: 'text/csv;charset=utf-8;',
-  });
-  
-  saveAs(blob, `${filename}.csv`);
+
+  saveAs(
+    new Blob([csv], { type: 'text/csv;charset=utf-8;' }),
+    `${filename}.csv`
+  );
 }
 
-export function exportToPDF(
+export async function exportToPDF(
   data: any[],
   options: ExportOptions = {}
-): void {
+): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  const { default: jsPDF } = await import('jspdf');
+  await import('jspdf-autotable');
+
   const {
     filename = 'export',
     orientation = 'portrait',
     columns,
   } = options;
 
-  // Create PDF document
-  const doc = new jsPDF({
-    orientation,
-    unit: 'mm',
-    format: 'a4',
-  });
+  const doc = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
 
-  // Set document properties
-  const title = filename.charAt(0).toUpperCase() + filename.slice(1);
-  doc.setProperties({
-    title,
-    subject: 'Exported Data',
-    author: 'Jasa Marga System',
-    keywords: 'export, data, report',
-    creator: 'Jasa Marga Monitoring System',
-  });
+  const headers = columns
+    ? columns.map(c => c.title)
+    : Object.keys(data[0] ?? {});
 
-  // Add header
-  const pageWidth = doc.internal.pageSize.width;
-  const margin = 10;
-  
-  doc.setFontSize(16);
-  doc.setTextColor(40, 40, 40);
-  doc.text('Jasa Marga - Data Export', pageWidth / 2, margin, { align: 'center' });
-  
-  doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Generated on: ${new Date().toLocaleString('id-ID')}`, pageWidth / 2, margin + 8, { align: 'center' });
+  const rows = data.map(row =>
+    columns
+      ? columns.map(c => String(row[c.key] ?? ''))
+      : Object.values(row).map(v => String(v ?? ''))
+  );
 
-  const headers = columns 
-    ? columns.map(col => col.title)
-    : data.length > 0 ? Object.keys(data[0]) : [];
-  
-  const rows = data.map(row => {
-    if (columns) {
-      return columns.map(col => {
-        const value = row[col.key];
-        return col.format ? col.format(value) : String(value || '');
-      });
-    }
-    return Object.values(row).map(value => String(value || ''));
-  });
-
-  // Add table
-  const startY = margin + 20;
-  
   (doc as any).autoTable({
     head: [headers],
     body: rows,
-    startY,
-    margin: { top: startY },
-    styles: {
-      fontSize: 8,
-      cellPadding: 2,
-    },
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: 255,
-      fontStyle: 'bold',
-    },
-    alternateRowStyles: {
-      fillColor: [245, 245, 245],
-    },
-    columnStyles: columns?.reduce((styles, col, index) => {
-      if (col.width) {
-        styles[index] = { cellWidth: col.width };
-      }
-      return styles;
-    }, {} as any) || {},
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 128, 185] },
   });
-
-  const pageCount = (doc as any).internal.getNumberOfPages();
-  
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      pageWidth - margin,
-      doc.internal.pageSize.height - margin,
-      { align: 'right' }
-    );
-  }
 
   doc.save(`${filename}.pdf`);
 }
 
-export function exportData(
+/* ===================== DISPATCHER ===================== */
+export async function exportData(
   data: any[],
   format: 'excel' | 'csv' | 'pdf',
   options: ExportOptions = {}
-): void {
+): Promise<void> {
   switch (format) {
     case 'excel':
       exportToExcel(data, options);
@@ -228,41 +144,35 @@ export function exportData(
       exportToCSV(data, options);
       break;
     case 'pdf':
-      exportToPDF(data, options);
+      await exportToPDF(data, options);
       break;
     default:
-      throw new Error(`Unsupported export format: ${format}`);
+      throw new Error(`Unsupported format: ${format}`);
   }
 }
 
+/* ===================== PREPARE DATA ===================== */
 export function prepareDataForExport(
   data: any[],
   columnMapping: Record<string, string> = {}
 ): any[] {
   return data.map(item => {
-    const exportedItem: any = {};
-    
-    Object.keys(item).forEach(key => {
-      const exportKey = columnMapping[key] || key;
-      let value = item[key];
-      
+    const obj: any = {};
+
+    Object.entries(item).forEach(([key, value]) => {
+      const mappedKey = columnMapping[key] ?? key;
+
       if (value instanceof Date) {
-        value = value.toLocaleDateString('id-ID');
-      } else if (typeof value === 'string' && !isNaN(Date.parse(value))) {
-        value = new Date(value).toLocaleDateString('id-ID');
+        obj[mappedKey] = value.toLocaleDateString('id-ID');
+      } else if (typeof value === 'number') {
+        obj[mappedKey] = value.toLocaleString('id-ID');
+      } else if (typeof value === 'boolean') {
+        obj[mappedKey] = value ? 'Ya' : 'Tidak';
+      } else {
+        obj[mappedKey] = value ?? '';
       }
-      
-      if (typeof value === 'number') {
-        value = value.toLocaleString('id-ID');
-      }
-      
-      if (typeof value === 'boolean') {
-        value = value ? 'Ya' : 'Tidak';
-      }
-      
-      exportedItem[exportKey] = value;
     });
-    
-    return exportedItem;
+
+    return obj;
   });
 }

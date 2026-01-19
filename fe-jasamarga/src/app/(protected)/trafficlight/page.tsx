@@ -11,18 +11,20 @@ import {
   Divider,
   Box,
 } from '@mantine/core';
-import { DatePicker } from '@mantine/dates';
-import { IconDownload, IconRefresh, IconFilter } from '@tabler/icons-react';
+import { DatePickerInput, DateValue } from '@mantine/dates';
+import { IconDownload, IconRefresh, IconFilter, IconCalendar } from '@tabler/icons-react';
 import { format } from 'date-fns';
-import { laporanAPI } from '@/lib/api/laporan';
+import { lalinsApi } from '@/lib/api/laporan';
 import { LaporanFilter } from '@/components/laporan/LaporanFilter';
 import { LaporanTable } from '@/components/laporan/LaporanTable';
 import { PaymentSummary } from '@/components/laporan/PaymentSummary';
 import { useExport } from '@/lib/hooks/useExport';
 import { notifications } from '@mantine/notifications';
+import Layout from '@/components/Layout';
 
 export default function LaporanLaluLintasPage() {
-  const [date, setDate] = useState<Date>(new Date());
+  const defaultDate = new Date(2023, 10, 2)
+  const [date, setDate] = useState<DateValue>(defaultDate);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -42,7 +44,7 @@ export default function LaporanLaluLintasPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const formattedDate = format(date, 'yyyy-MM-dd');
+      const formattedDate = format(date!, 'yyyy-MM-dd');
       const params = {
         tanggal: formattedDate,
         page: pagination.page,
@@ -52,8 +54,8 @@ export default function LaporanLaluLintasPage() {
         ...(filters.shift && { shift: parseInt(filters.shift) }),
       };
 
-      const response = await laporanAPI.getAll(params);
-
+      const response = await lalinsApi.getAll(params);
+      console.log(response)
       if (response.status) {
         setData(response.data.rows.rows);
         setPagination(prev => ({
@@ -75,7 +77,7 @@ export default function LaporanLaluLintasPage() {
 
   const handleExport = async () => {
     try {
-      const formattedDate = format(date, 'yyyy-MM-dd');
+      const formattedDate = format(date!, 'yyyy-MM-dd');
       const params = {
         tanggal: formattedDate,
         ...filters,
@@ -112,18 +114,18 @@ export default function LaporanLaluLintasPage() {
       <div style={{ position: 'relative' }}>
         <LoadingOverlay visible={loading} />
 
-        <Group position="apart" mb="lg">
+        <Group justify="space-between" mb="lg">
           <Title order={2}>Laporan Lalu Lintas Harian</Title>
           <Group>
-            <DatePicker
+            <DatePickerInput
               value={date}
               onChange={(val) => val && setDate(val)}
-              icon={<IconFilter size={16} />}
+              leftSection={<IconCalendar size={16} />}
               placeholder="Pilih tanggal"
               clearable={false}
             />
             <Button
-              leftIcon={<IconDownload size={16} />}
+              leftSection={<IconDownload size={16} />}
               onClick={handleExport}
               loading={loading}
               variant="light"
@@ -131,7 +133,7 @@ export default function LaporanLaluLintasPage() {
               Export Excel
             </Button>
             <Button
-              leftIcon={<IconRefresh size={16} />}
+              leftSection={<IconRefresh size={16} />}
               onClick={fetchData}
               loading={loading}
             >
