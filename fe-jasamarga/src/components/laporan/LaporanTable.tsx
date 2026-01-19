@@ -1,30 +1,17 @@
 'use client';
 
-import {
-  Table,
-  Pagination,
-  Group,
-  Text,
-  ActionIcon,
-  Badge,
-} from '@mantine/core';
-import { IconEye, IconEdit, IconTrash } from '@tabler/icons-react';
-import {
-  paymentMethodLabels,
-  shiftLabels,
-  golonganLabels,
-} from '@/lib/constants/payment';
+import { Table, Pagination, Group, Text } from '@mantine/core';
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+
+import { LalinRow } from '@/lib/types/laporan';
 
 interface LaporanTableProps {
-  data: any[];
+  data: LalinRow[];
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
   loading?: boolean;
-  onView?: (item: any) => void;
-  onEdit?: (item: any) => void;
-  onDelete?: (id: number) => void;
 }
 
 export function LaporanTable({
@@ -33,135 +20,83 @@ export function LaporanTable({
   totalPages,
   onPageChange,
   loading = false,
-  onView,
-  onEdit,
-  onDelete,
 }: LaporanTableProps) {
-  const calculateRowTotal = (row: any) => {
-    return Object.keys(paymentMethodLabels).reduce((sum, key) => {
-      return sum + (row[key] || 0);
-    }, 0);
-  };
-
-  const rows = data.map((row) => {
-    const rowTotal = calculateRowTotal(row);
-
-    return (
-      <tr key={row.id}>
-        <td>{format(new Date(row.Tanggal), 'dd/MM/yyyy')}</td>
-
-        <td>
-          <Badge color="blue">Gerbang {row.IdGerbang}</Badge>
-        </td>
-
-        <td>
-          <Badge
-            color={
-              row.Shift === 1
-                ? 'blue'
-                : row.Shift === 2
-                ? 'green'
-                : 'orange'
-            }
-          >
-            {shiftLabels[row.Shift] || `Shift ${row.Shift}`}
-          </Badge>
-        </td>
-
-        <td>
-          <Badge variant="outline">
-            {golonganLabels[row.Golongan] || `Gol ${row.Golongan}`}
-          </Badge>
-        </td>
-
-        <td>{row.Tunai.toLocaleString('id-ID')}</td>
-
-        <td>
-          {(
-            row.eMandiri +
-            row.eBri +
-            row.eBni +
-            row.eBca +
-            row.eDKI +
-            row.eMega +
-            row.eNobu
-          ).toLocaleString('id-ID')}
-        </td>
-
-        <td>{row.eFlo.toLocaleString('id-ID')}</td>
-
-        <td>
-          {(row.DinasOpr + row.DinasMitra + row.DinasKary).toLocaleString(
-            'id-ID'
-          )}
-        </td>
-
-        <td>
-          <Text fw={700}>{rowTotal.toLocaleString('id-ID')}</Text>
-        </td>
-
-        <td>
-          <Group gap="xs" wrap="nowrap">
-            {onView && (
-              <ActionIcon
-                color="blue"
-                size="sm"
-                onClick={() => onView(row)}
-              >
-                <IconEye size={14} />
-              </ActionIcon>
-            )}
-
-            {onEdit && (
-              <ActionIcon
-                color="yellow"
-                size="sm"
-                onClick={() => onEdit(row)}
-              >
-                <IconEdit size={14} />
-              </ActionIcon>
-            )}
-
-            {onDelete && (
-              <ActionIcon
-                color="red"
-                size="sm"
-                onClick={() => onDelete(row.id)}
-              >
-                <IconTrash size={14} />
-              </ActionIcon>
-            )}
-          </Group>
-        </td>
-      </tr>
-    );
-  });
-
   return (
-    <div>
-      <Table striped highlightOnHover>
+    <>
+      <Table striped highlightOnHover withColumnBorders>
         <thead>
           <tr>
-            <th>Tanggal</th>
+            <th>No</th>
+            <th>Ruas</th>
             <th>Gerbang</th>
-            <th>Shift</th>
-            <th>Golongan</th>
-            <th>Tunai</th>
-            <th>E-Toll</th>
-            <th>Flo</th>
-            <th>KTP</th>
-            <th>Total</th>
-            <th>Aksi</th>
+            <th>Gardu</th>
+            <th>Hari</th>
+            <th>Tanggal</th>
+            <th>Metode Pembayaran</th>
+            <th>Gol I</th>
+            <th>Gol II</th>
+            <th>Gol III</th>
+            <th>Gol IV</th>
+            <th>Total Lalin</th>
           </tr>
         </thead>
 
         <tbody>
-          {rows.length > 0 ? (
-            rows
+          {data.length > 0 ? (
+            data.map((row, index) => {
+              // Total lalin per baris
+              const totalLalin =
+                row.Tunai +
+                row.DinasOpr +
+                row.DinasMitra +
+                row.DinasKary +
+                row.eMandiri +
+                row.eBri +
+                row.eBni +
+                row.eBca +
+                row.eNobu +
+                row.eDKI +
+                row.eMega +
+                row.eFlo;
+
+              return (
+                <tr key={row.id}>
+                  <td>{(page - 1) * 10 + index + 1}</td>
+                  <td>{row.IdCabang}</td>
+                  <td>Gerbang {row.IdGerbang}</td>
+                  <td>Gardu {row.IdGardu}</td>
+                  <td>
+                    {format(new Date(row.Tanggal), 'EEEE', {
+                      locale: id,
+                    })}
+                  </td>
+                  <td>
+                    {format(
+                      new Date(row.Tanggal),
+                      'dd-MM-yyyy'
+                    )}
+                  </td>
+                  <td>Tunai & Non Tunai</td>
+
+                  <td>{row.Golongan === 1 ? totalLalin : 0}</td>
+                  <td>{row.Golongan === 2 ? totalLalin : 0}</td>
+                  <td>{row.Golongan === 3 ? totalLalin : 0}</td>
+                  <td>{row.Golongan === 4 ? totalLalin : 0}</td>
+
+                  <td>
+                    <Text fw={700}>
+                      {totalLalin.toLocaleString('id-ID')}
+                    </Text>
+                  </td>
+                </tr>
+              );
+            })
           ) : (
             <tr>
-              <td colSpan={10} style={{ textAlign: 'center', padding: 40 }}>
-                <Text c="dimmed">Tidak ada data untuk ditampilkan</Text>
+              <td colSpan={12} style={{ textAlign: 'center', padding: 40 }}>
+                <Text c="dimmed">
+                  Tidak ada data untuk ditampilkan
+                </Text>
               </td>
             </tr>
           )}
@@ -178,6 +113,6 @@ export function LaporanTable({
           />
         </Group>
       )}
-    </div>
+    </>
   );
 }

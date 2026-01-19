@@ -1,16 +1,28 @@
-export interface LaporanItem {
+// lib/types/laporan.ts
+
+export interface LalinFilter {
+  tanggal?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+  gerbang?: number;
+  shift?: number;
+}
+
+export interface LalinRow {
   id: number;
   IdCabang: number;
   IdGerbang: number;
+  IdGardu: number;
   Tanggal: string;
   Shift: number;
-  IdGardu: number;
-  Golongan: number;
-  IdAsalGerbang: number;
+  Golongan: 1 | 2 | 3 | 4;
+
   Tunai: number;
   DinasOpr: number;
   DinasMitra: number;
   DinasKary: number;
+
   eMandiri: number;
   eBri: number;
   eBni: number;
@@ -21,7 +33,7 @@ export interface LaporanItem {
   eFlo: number;
 }
 
-export interface LaporanResponse {
+export interface LalinApiResponse {
   status: boolean;
   message: string;
   code: number;
@@ -31,33 +43,7 @@ export interface LaporanResponse {
     count: number;
     rows: {
       count: number;
-      rows: LaporanItem[];
+      rows: LalinRow[];
     };
   };
-}
-
-export interface LaporanFilter {
-  tanggal?: string;
-  gerbang?: number;
-  shift?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-  start_date?: string;
-  end_date?: string;
-}
-
-export interface PaymentSummary {
-  totalTunai: number;
-  totalEToll: number;
-  totalFlo: number;
-  totalKTP: number;
-  totalKeseluruhan: number;
-  totalETollTunaiFlo: number;
-}
-
-export interface ChartData {
-  name: string;
-  value: number;
-  color?: string;
 }

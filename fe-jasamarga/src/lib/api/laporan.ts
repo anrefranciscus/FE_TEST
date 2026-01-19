@@ -1,30 +1,48 @@
-import axios from 'axios';
-import { LaporanResponse, LaporanFilter } from '@/lib/types/laporan';
+// lib/api/laporan.ts
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+import axios from 'axios';
+import {
+  LalinApiResponse,
+  LalinFilter,
+} from '@/lib/types/laporan';
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
-// Add token to requests
+// Inject token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
 
 export const lalinsApi = {
-  async getAll(filter: LaporanFilter) {
-    const response = await api.get('/lalins', { params: filter });
+  async getAll(
+    params: LalinFilter
+  ): Promise<LalinApiResponse> {
+    const response = await api.get<LalinApiResponse>(
+      '/lalins',
+      { params }
+    );
     return response.data;
   },
 
-  async getByDate(date: string) {
-    const response = await api.get('/lalins', { params: { tanggal: date } });
+  async getByDate(
+    tanggal: string
+  ): Promise<LalinApiResponse> {
+    const response = await api.get<LalinApiResponse>(
+      '/lalins',
+      { params: { tanggal } }
+    );
     return response.data;
   },
-
 };
