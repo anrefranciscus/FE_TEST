@@ -73,6 +73,7 @@ export function GerbangForm({
       }
       onSubmitSuccess();
     } catch (error: any) {
+      console.log(error)
       notifications.show({
         title: 'Error',
         message: error?.message ?? 'Gagal menyimpan data gerbang',

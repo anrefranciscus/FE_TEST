@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,36 +11,36 @@ const api = axios.create({
   },
 });
 
-api.interceptors.request.use(
-  (config) => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('jasamarga_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('jasamarga_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
-);
+  return config;
+});
 
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const data = error.response?.data;
+
+    if (status === 401 && data?.code === 'UNAUTHORIZED') {
       localStorage.removeItem('jasamarga_token');
       localStorage.removeItem('jasamarga_user');
+
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
     }
-    
-    const errorMessage = error.response?.data?.message || 'Terjadi kesalahan pada server';
-    return Promise.reject(new Error(errorMessage));
+
+    return Promise.reject({
+      status,
+      code: data?.code,
+      message: data?.message || 'Terjadi kesalahan pada server',
+    });
   }
 );
 
