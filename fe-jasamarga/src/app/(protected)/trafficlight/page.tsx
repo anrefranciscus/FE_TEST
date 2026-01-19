@@ -1,88 +1,121 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Paper,
   Title,
   Group,
   Button,
-  LoadingOverlay,
-  Box,
   Text,
+  LoadingOverlay,
+  Divider,
+  Box,
+  TextInput,
 } from '@mantine/core';
 import { DatePickerInput, DateValue } from '@mantine/dates';
 import {
-  IconCalendar,
-  IconRefresh,
   IconDownload,
+  IconRefresh,
+  IconCalendar,
+  IconSearch,
 } from '@tabler/icons-react';
 import { format } from 'date-fns';
-import { notifications } from '@mantine/notifications';
 
 import Layout from '@/components/Layout';
-import { LaporanTable } from '@/components/laporan/LaporanTable';
 import { lalinsApi } from '@/lib/api/laporan';
-import { LalinRow, LalinApiResponse } from '@/lib/types/laporan';
+import { LaporanTable } from '@/components/laporan/LaporanTable';
+import { PaymentSummary } from '@/components/laporan/PaymentSummary';
+import { useExport } from '@/lib/hooks/useExport';
+import { notifications } from '@mantine/notifications';
+import { LalinRow } from '@/lib/types/laporan';
 
-const PAGE_SIZE = 10;
+const LIMIT = 10;
 
 export default function LaporanLaluLintasPage() {
   const defaultDate = new Date(2023, 10, 2)
   const [date, setDate] = useState<DateValue>(defaultDate);
-  const [allData, setAllData] = useState<LalinRow[]>([]);
+  const [rawData, setRawData] = useState<LalinRow[]>([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
-
   const [page, setPage] = useState(1);
-  const fetchData = useCallback(async () => {
+
+  const { exportToExcel } = useExport();
+
+  /* ================= FETCH ALL DATA ================= */
+  const fetchData = async () => {
     if (!date) return;
 
     setLoading(true);
-
     try {
-      const res: LalinApiResponse =
-        await lalinsApi.getByDate(
-          format(date, 'yyyy-MM-dd')
-        );
+      const tanggal = format(date, 'yyyy-MM-dd');
 
-      if (!res.status) {
-        throw new Error(res.message);
+      // 🔥 ambil SEMUA data (tanpa page & limit)
+      const response = await lalinsApi.getAll({ tanggal });
+
+      if (response.status) {
+        setRawData(response.data.rows.rows);
+        setPage(1);
       }
-
-      setAllData(res.data.rows.rows);
-      setPage(1); // reset page saat ganti tanggal
     } catch (error: any) {
       notifications.show({
-        title: 'Gagal',
-        message:
-          error?.message ||
-          'Gagal memuat data laporan',
+        title: 'Error',
+        message: error.message || 'Gagal memuat data',
         color: 'red',
       });
     } finally {
       setLoading(false);
     }
-  }, [date]);
+  };
 
-  // ===============================
-  // EFFECT
-  // ===============================
+  /* ================= SEARCH ================= */
+ const filteredData = useMemo(() => {
+    if (!search) return rawData;
+
+    const keyword = search.toLowerCase();
+
+    return rawData.filter((row) => {
+      const searchableText = `
+        gerbang ${row.IdGerbang}
+        gardu ${row.IdGardu}
+        gol ${row.Golongan}
+        golongan ${row.Golongan}
+        shift ${row.Shift}
+      `.toLowerCase();
+
+      return searchableText.includes(keyword);
+    });
+  }, [search, rawData]);
+
+  const paginatedData = useMemo(() => {
+    const start = (page - 1) * LIMIT;
+    return filteredData.slice(start, start + LIMIT);
+  }, [filteredData, page]);
+
+  const totalPages = Math.ceil(filteredData.length / LIMIT);
+
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [date]);
 
-  // ===============================
-  // CLIENT SIDE PAGINATION
-  // ===============================
-  const paginatedData = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return allData.slice(start, start + PAGE_SIZE);
-  }, [allData, page]);
+  /* ================= EXPORT ================= */
+  // const handleExport = async () => {
+  //   try {
+  //     if (!date) return;
+  //     const tanggal = format(date, 'yyyy-MM-dd');
 
-  const totalPages = Math.ceil(allData.length / PAGE_SIZE);
+  //     await exportToExcel(
+  //       { tanggal },
+  //       `laporan-lalu-lintas-${tanggal}.xlsx`
+  //     );
+  //   } catch (error: any) {
+  //     notifications.show({
+  //       title: 'Error',
+  //       message: error.message || 'Gagal export data',
+  //       color: 'red',
+  //     });
+  //   }
+  // };
 
-  // ===============================
-  // RENDER
-  // ===============================
   return (
     <Layout>
       <Box pos="relative">
@@ -90,38 +123,49 @@ export default function LaporanLaluLintasPage() {
 
         {/* HEADER */}
         <Group justify="space-between" mb="lg">
-          <Title order={2}>
-            Laporan Lalu Lintas Harian
-          </Title>
+          <Title order={2}>Laporan Lalu Lintas Harian</Title>
 
           <Group>
             <DatePickerInput
               value={date}
-              onChange={setDate}
+              onChange={(val) => val && setDate(val)}
               leftSection={<IconCalendar size={16} />}
+              placeholder="Pilih tanggal"
               clearable={false}
             />
-
-            <Button
-              leftSection={<IconRefresh size={16} />}
-              onClick={fetchData}
-              loading={loading}
-            >
-              Refresh
-            </Button>
-
             <Button
               leftSection={<IconDownload size={16} />}
               variant="light"
               disabled
             >
-              Export
+              Export Excel
+            </Button>
+
+            <Button
+              leftSection={<IconRefresh size={16} />}
+              onClick={fetchData}
+            >
+              Refresh
             </Button>
           </Group>
         </Group>
 
-        {/* TABLE */}
-        <Paper withBorder radius="md">
+        {/* SEARCH */}
+        <Paper p="md" withBorder mb="lg">
+          <TextInput
+            placeholder="Cari Gerbang / Gardu / Golongan / Shift"
+            leftSection={<IconSearch size={16} />}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.currentTarget.value);
+              setPage(1);
+            }}
+          />
+        </Paper>
+
+        <PaymentSummary data={filteredData} />
+
+        <Paper withBorder mt="lg">
           <LaporanTable
             data={paginatedData}
             page={page}
@@ -131,10 +175,10 @@ export default function LaporanLaluLintasPage() {
           />
         </Paper>
 
-        {/* FOOTER */}
-        <Text size="sm" c="dimmed" mt="sm">
-          Menampilkan {paginatedData.length} dari{' '}
-          {allData.length} data
+        <Divider my="lg" />
+
+        <Text size="sm" c="dimmed">
+          Menampilkan {filteredData.length} data
         </Text>
       </Box>
     </Layout>
