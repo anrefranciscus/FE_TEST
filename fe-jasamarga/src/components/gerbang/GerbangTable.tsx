@@ -33,6 +33,7 @@ export function GerbangTable({
   const rows = data.map((gerbang) => (
     <Table.Tr key={gerbang._uid}>
       <Table.Td>{gerbang.id}</Table.Td>
+      <Table.Td>{gerbang.IdCabang}</Table.Td>
       <Table.Td>{gerbang.NamaGerbang}</Table.Td>
       <Table.Td>{gerbang.NamaCabang}</Table.Td>
       <Table.Td>
@@ -75,6 +76,7 @@ export function GerbangTable({
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Id</Table.Th>
+              <Table.Th>Id Cabang</Table.Th>
               <Table.Th>Nama Gerbang</Table.Th>
               <Table.Th>Nama Cabang</Table.Th>
               <Table.Th>Aksi</Table.Th>
